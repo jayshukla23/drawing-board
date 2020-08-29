@@ -11,6 +11,7 @@ function Canvas(props) {
     setCurrentBrush, 
   } = props;    
   
+  // Using refs instead of state to make sure the latest value is fetched with eventListeners in picture
   const contextList = useRef([]);
   const offset = useRef({ offsetLeft: 0, offsetTop: 0 });
   const prevPos = useRef({ x: null, y: null });  
@@ -18,41 +19,50 @@ function Canvas(props) {
   const shouldDraw = useRef(false);
   const context = useRef(null);
 
+  // Analogous to componentDidMount hook
   useEffect(() => {
     mounted();
   }, []);
 
+  // Watcher for property: currentBrush
   useEffect(() => {    
     watchCurrentBrush();
   }, [currentBrush]);  
 
+  // Watcher for property: currentStrokeSize
   useEffect(() => {    
     watchStrokeSize();
   }, [currentStrokeSize]);
 
+  // Watcher for property: currentStrokeColor
   useEffect(() => {
     watchStrokeColor();
   }, [currentStrokeColor])
 
   function mounted() {
+    // Getting canvas DOM elements
     const penCanvas = document.querySelector('#penCanvas');  
     const markerCanvas = document.querySelector('#highlighterCanvas');  
     
+    // Initialising canvas contexts (with some default configuration)
     const penCxt = initCanvas(penCanvas);
     const markerCxt = initCanvas(markerCanvas, true);
 
+    // Adding an extra property for identification by respective brush type
     penCxt.brush = brushes.pencil;
     markerCxt.brush = brushes.marker;          
     
+    // Updating the refs
     setContextList([penCxt, markerCxt]);     
     setCurrentBrush(brushes.pencil);      
   }    
 
   function watchCurrentBrush() {
+    // Setting the stroke opacity based on the selected brush
     let newContext = null;     
     if(currentBrush === brushes.marker) {
       newContext = contextList.current.find(cxt => cxt.brush === brushes.marker);
-      newContext.globalAlpha = 0.1;      
+      newContext.globalAlpha = 0.1; // Went for a low value; Can be replaced with 0.5
     } else {
       newContext = contextList.current.find(cxt => cxt.brush === brushes.pencil);
       newContext.globalAlpha = 1;      
@@ -61,12 +71,14 @@ function Canvas(props) {
   }
 
   function watchStrokeSize() {    
+    // Updating stroke size (reset on brush change)
     const currentContext = context.current;
     currentContext.lineWidth = currentStrokeSize;
     setCurrentContext(currentContext); 
   }
 
   function watchStrokeColor() {
+    // Updating stroke color    
     const currentContext = context.current;
     currentContext.strokeStyle = currentStrokeColor;
   }
@@ -76,6 +88,7 @@ function Canvas(props) {
   }
 
   function setCanvasOffset({ offsetLeft = 0, offsetTop = 0 }) {    
+    // Using offset to make sure the stroke is always aligned properly with respect to cursor position
     offset.current = { offsetLeft, offsetTop };
   }
 
@@ -97,7 +110,7 @@ function Canvas(props) {
 
   function toggleDraw(value = false) {
     const currentContext = context.current;    
-    if(value) {      
+    if(value) {
       clearMarkerCanvas();
       currentContext.beginPath();
     } else {
@@ -106,10 +119,12 @@ function Canvas(props) {
     toggleShouldDraw(value);
   }  
 
-  function clearMarkerCanvas() {    
+  function clearMarkerCanvas() {  
+    // Clear the marker canvas (as per requirement)  
     const canvas = document.querySelector('#highlighterCanvas');
     if(canvas) {      
       const markerCxt = contextList.current.find(cxt => cxt.brush === brushes.marker);
+      // Clear the whole canvas
       markerCxt.clearRect(0, 0, canvas.width, canvas.height);
     }
   }
